@@ -1,0 +1,242 @@
+# =============================================================================
+# Strategy: Javi v1
+# =============================================================================
+# Estrategia de referencia del primer usuario del agente. Sirve como ejemplo
+# completo de la spec en docs/03-strategy-spec.md.
+#
+# Esta strategy combina:
+#   1. Núcleo pasivo (Indexa Capital, 90/10 equity/bonds)
+#   2. Cartera contrarian/growth en acciones individuales (Estrategia 2)
+#   3. DCA con triggers en cripto (BTC, ETH, SOL)
+#   4. Posiciones lotería pasivas (LINK, NEAR)
+# =============================================================================
+
+metadata:
+  name: "Javi v1"
+  version: 1
+  language: "es-ES"
+  description: |
+    Núcleo pasivo en Indexa + cartera contrarian/growth en acciones individuales
+    aprovechando correcciones del 20-70%, DCA en cripto, y lotería pasiva.
+    Filosofía: paciencia sobre actividad, disciplina sobre intuición.
+
+# -----------------------------------------------------------------------------
+# Sub-estrategias
+# -----------------------------------------------------------------------------
+sub_strategies:
+
+  - id: "indexa_core"
+    name: "Estrategia 1 — Indexa Core"
+    type: "passive_dca"
+    enabled: true
+    dca_monthly_eur: 300
+    target_allocation: "90% equity / 10% bonds"
+    horizon_years: 10
+    rules:
+      - "No tocar nunca, salvo aportar más en crashes"
+      - "Revisar en 2026 si pasar a 100% equity"
+    notes: |
+      Crecimiento compuesto a muy largo plazo. Subir DCA gradualmente
+      conforme aumente la nómina.
+
+  - id: "growth_moderado"
+    name: "Estrategia 2 — Growth moderado"
+    type: "discretionary"
+    enabled: true
+    entry_criteria:
+      drawdown_from_ath_min: 20
+      drawdown_from_ath_max: 30
+      fundamentals: "intact_or_improving"
+      quality_tier: "blue_chip"
+      catalyst_required: false
+    position_sizing:
+      typical_eur: [400, 600]
+      max_eur: 1000
+      scales_with: "discount_depth_and_conviction"
+    max_positions: 3
+    exit_criteria:
+      - condition: "near_ath"
+        action: "sell_50_to_100_pct"
+      - condition: "thesis_broken"
+        action: "cut_losses"
+      - condition: "extraordinary_gain_above_60_pct"
+        action: "sell_partial_or_full"
+      - condition: "better_opportunity"
+        action: "rotate"
+    notes: |
+      Empresas blue chip con corrección moderada. Posición pequeña porque
+      el descuento no es masivo. Ej: Google a -20%, Meta a -22%.
+
+  - id: "contrarian_fuerte"
+    name: "Estrategia 2 — Contrarian fuerte"
+    type: "discretionary"
+    enabled: true
+    entry_criteria:
+      drawdown_from_ath_min: 40
+      drawdown_from_ath_max: 70
+      fundamentals: "intact_or_improving"
+      market_sentiment: "panic"
+      catalyst_required: true
+    position_sizing:
+      typical_eur: [600, 1200]
+      max_eur: 1500
+      scales_with: "discount_depth_and_conviction"
+    max_positions: 5
+    exit_criteria:
+      - condition: "near_ath"
+        action: "sell_50_to_100_pct"
+      - condition: "thesis_broken"
+        action: "cut_losses"
+      - condition: "extraordinary_gain_above_100_pct"
+        action: "sell_partial_or_full"
+    notes: |
+      Empresas calidad cayendo por pánico, no por deterioro real.
+      Ej: Meta 2022, Adobe 2024-25, Oracle en correcciones serias.
+
+  - id: "loteria"
+    name: "Posiciones lotería"
+    type: "lottery"
+    enabled: true
+    max_total_exposure_eur: 500
+    rules:
+      - "Posiciones pequeñas, no añadir"
+      - "Hold pasivo hasta que pasen cosas"
+    notes: |
+      LINK, NEAR y similares. Si triplican, vender la mitad. Si van a cero,
+      lección aprendida.
+
+# -----------------------------------------------------------------------------
+# Reglas globales de cartera
+# -----------------------------------------------------------------------------
+global_rules:
+  max_active_positions: 10
+  max_per_sub_strategy:
+    growth_moderado: 3
+    contrarian_fuerte: 5
+  opportunity_cash_reserve_eur:
+    target_min: 5000
+    target_max: 6000
+    location: "Trade Republic"
+  emergency_fund_eur:
+    amount: 8000
+    location: "BBVA"
+    rule: "intocable"
+
+# -----------------------------------------------------------------------------
+# Playbooks de referencia
+# -----------------------------------------------------------------------------
+playbooks:
+  success:
+    - ticker: "META"
+      year: 2022
+      lesson: |
+        Caída del 75% por pánico al gasto en metaverso. Fundamentales del
+        negocio publicitario intactos. Resultado: 4x al recuperar.
+        Patrón: descuento extremo + tesis bear ruidosa pero superficial +
+        catalizador (Year of Efficiency 2023).
+    - ticker: "TSLA"
+      lesson: |
+        Corrección fuerte con tesis intacta. Resultado: 2x.
+    - ticker: "INTC"
+      lesson: |
+        +60%. Vendido a tiempo cuando se acercó a niveles donde la tesis
+        contrarian ya no aplicaba.
+
+  cautionary:
+    - ticker: "NKE"
+      lesson: |
+        Marca fuerte ≠ inversión sólida. Fundamentales en deterioro real
+        (cuota perdida, tarifas, China floja). Promediar a la baja sin
+        tesis clara fue un error. Lección: si el negocio está rompiéndose,
+        cortar y no añadir.
+    - ticker: "ASTON_MARTIN"
+      lesson: |
+        Trampa de valor clásica. Caída del 70%+ pero con deuda 12.8x EBITDA,
+        7 quiebras históricas, ventas cayendo. No es contrarian: el negocio
+        está sangrando activamente. Distinguir descuento de pánico vs
+        descuento por deterioro.
+    - ticker: "NFLX_WBD"
+      lesson: |
+        Cuando hay un evento que potencialmente rompe la tesis (intento de
+        compra de WBD), evaluar antes de actuar. Una vez descartado el
+        deal, restaurar la tesis original.
+
+# -----------------------------------------------------------------------------
+# Plan ante correcciones de mercado
+# -----------------------------------------------------------------------------
+crash_plan:
+  benchmark: "SP500"
+  reserve_location: "Trade Republic cash"
+  ladder:
+    - drawdown_pct: 20
+      action: "deploy_eur"
+      amount: 1500
+      target: "indexa_core"
+      notes: "Primera oleada"
+    - drawdown_pct: 30
+      action: "deploy_eur"
+      amount: 2000
+      target: "indexa_core"
+      notes: "Segunda oleada"
+    - drawdown_pct: 40
+      action: "deploy_remaining"
+      target: "indexa_core"
+      notes: "Todo lo disponible al fondo"
+
+# -----------------------------------------------------------------------------
+# Plan de cripto
+# -----------------------------------------------------------------------------
+crypto_plan:
+  dca_monthly_eur:
+    BTC: 100
+    ETH: 50
+    SOL: 50
+  cashback_to: "BTC"
+  cashback_estimate_monthly_eur: 6
+  hodl_only: ["BTC"]
+  reserve_for_crashes_eur: 2000
+  crash_triggers:
+    - asset: "BTC"
+      condition: "price_below"
+      threshold: 40000
+      currency: "USD"
+      deploy_eur: 1000
+    - asset: "ETH"
+      condition: "price_below"
+      threshold: 1500
+      currency: "USD"
+      deploy_eur: 500
+    - asset: "SOL"
+      condition: "price_below"
+      threshold: 100
+      currency: "USD"
+      deploy_eur: 500
+  passive_lottery: ["LINK", "NEAR"]
+  rules:
+    - "BTC: hold 10+ años, no vender salvo emergencia extrema"
+    - "ETH/SOL: hold largo, vender solo si se desbalancean mucho"
+    - "LINK/NEAR: pasivo, no añadir"
+
+# -----------------------------------------------------------------------------
+# Estilo de análisis del LLM
+# -----------------------------------------------------------------------------
+analysis_style:
+  tone: "directo, conciso, sin paja"
+  formality: "tutear"
+  language: "es-ES"
+  always_include:
+    - "% drawdown desde ATH antes de opinar"
+    - "Clasificación explícita en sub-estrategia"
+    - "Bull case y bear case honestos"
+    - "Recomendación cuantificada (cantidades, niveles)"
+    - "Próximo catalizador con fecha"
+  reference_playbooks: true
+  red_flags_to_call_out:
+    - "Activos sin tesis bear identificada"
+    - "Acercarse a max_positions"
+    - "Concentración sectorial alta"
+    - "Promediar a la baja sin tesis fortalecida"
+  preferences:
+    - "Cuando el mercado está en máximos y no hay material contrarian, mejor recomendar 'no hacer nada'"
+    - "Evitar sesgo de familiaridad (ej: META) — analizar fríamente"
+    - "Distinguir corrección por pánico de corrección por deterioro real"
