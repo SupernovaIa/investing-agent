@@ -1,10 +1,13 @@
 # 04 — Especificación de informes
-
-Este documento define la estructura, contenido y reglas de generación de los
-informes que produce el agente.
-
-> 🚧 Este documento es un esqueleto inicial. Se irá refinando a medida que se
-> validen los outputs con casos reales.
+ 
+ Este documento define la estructura, contenido y reglas de generación de los
+ informes que produce el agente.
+ 
++> 📋 **Referencia canónica:** ver [`examples/sample-asset-report.md`](../examples/sample-asset-report.md)
++> como ejemplo concreto de un informe por activo conforme a esta spec.
++
+ > 🚧 Este documento es un esqueleto inicial. Se irá refinando a medida que se
+ > validen los outputs con casos reales.
 
 ## Tipos de informe
 
